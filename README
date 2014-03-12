@@ -1,0 +1,6 @@
+Convenient representation for multiple time series
+ 
+time.table represents a collection of (usually numeric) time series with common
+frequency, endpoints (though datapoints can be missing), and dimension. A common
+use case would be longitudinal studies where multiple subjects are measured over
+a common time span.

@@ -1,0 +1,14 @@
+Package: timetablr
+Type: Package
+Title: Representation and basic operation for multiple time series.
+Version: 0.1
+Authors@R: "Tilo Wiklund <tilo@wiklund.co> [aut, cre]"
+Description: Thin layer on top of data.table for working with multiple time
+             series data (e.g. longitudinal studies).
+Depends: R (>= 3.0.2)
+Imports:
+    data.table (>= 1.8)
+Suggests:
+    testthat (>= 0.8)
+License: BSD_3_clause + file LICENSE
+LazyData: true
