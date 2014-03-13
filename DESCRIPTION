@@ -3,9 +3,12 @@ Type: Package
 Title: Representation and basic operation for multiple time series.
 Version: 0.1
 Authors@R: "Tilo Wiklund <tilo@wiklund.co> [aut, cre]"
+Author: Tilo Wiklund <tilo@wiklund.co>
+Maintainer: Tilo Wiklund <tilo@wiklund.co>
 Description: Thin layer on top of data.table for working with multiple time
-             series data (e.g. longitudinal studies).
-Depends: R (>= 3.0.1)
+    series data (e.g. longitudinal studies).
+Depends:
+    R (>= 3.0.1)
 Imports:
     data.table (>= 1.8)
 Suggests:

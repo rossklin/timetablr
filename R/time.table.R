@@ -133,16 +133,20 @@ subset.time.table.parts <- function( tt, with.index=FALSE, with.time=FALSE
     tt2
 }
 
+#' Extract time.table index
 index.time.table <- function(tt, with.time=FALSE, rekey=TRUE)
     subset.time.table.parts(tt, TRUE, with.time, FALSE, FALSE, rekey)
 
+#' Extract time.table times
 time.time.table <- function(tt, with.index=FALSE, rekey=FALSE)
     subset.time.table.parts(tt, with.index, TRUE, FALSE, FALSE, rekey)
 
+#' Extract time.table measurements
 measurement.time.table <- function( tt, with.index=FALSE, with.time=FALSE
                                   , rekey=(with.index|with.time) )
     subset.time.table.parts(tt, with.index, with.time, TRUE, FALSE, rekey=rekey)
 
+#' Extract time.table auxiliaries
 auxiliary.time.table <- function( tt, with.index=FALSE, with.time=FALSE
                                 , rekey=(with.index|with.time) ) 
     subset.time.table.parts(tt, with.index, with.time, FALSE, TRUE, rekey=rekey)
@@ -164,7 +168,9 @@ measurement.names <- function(tt) attr(tt, "measurement.vars")
 #' @export
 auxiliary.names <- function(tt) attr(tt, "aux.vars")
 
+#' time.table time delta
 deltat.time.table <- function(tt) attr(tt, "frequency")$delta
+#' time.table frequency
 frequency.time.table <- function(tt) 1/attr(tt, "frequency")$delta
 
 #' List of time points within a (regular) time.table
@@ -172,7 +178,9 @@ frequency.time.table <- function(tt) 1/attr(tt, "frequency")$delta
 #' @export
 timerange <- function(tt) with(attr(tt, "frequency"), seq(from, to, delta))
 
+#' time.table starting time
 start.time.table <- function(tt) attr(tt, "frequency")$from
+#' time.table ending time
 end.time.table <- function(tt) attr(tt, "frequency")$to
 
 #' Subset a time table
