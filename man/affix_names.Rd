@@ -1,8 +1,8 @@
-\name{affix.names}
-\alias{affix.names}
+\name{affix_names}
+\alias{affix_names}
 \title{Affix measurement/auxiliary names}
 \usage{
-affix.names(tt, prefix = NULL, suffix = NULL, measurement.prefix = NULL,
+affix_names(tt, prefix = NULL, suffix = NULL, measurement.prefix = NULL,
   measurement.suffix = NULL, auxiliary.prefix = NULL,
   auxiliary.suffix = NULL)
 }

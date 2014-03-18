@@ -1,8 +1,8 @@
-\name{split.by.cols}
-\alias{split.by.cols}
+\name{split_by_cols}
+\alias{split_by_cols}
 \title{Split a data.table}
 \usage{
-\method{split}{by.cols}(dt, cols)
+split_by_cols(dt, cols)
 }
 \arguments{
   \item{dt}{data.table to split}

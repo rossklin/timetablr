@@ -172,17 +172,17 @@ for(nm in names(test.tables)) {
 context("as.time.table stores column kinds and internal order")
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
-        expect_that(index.names(tt), equals(colnames(data$index)))
-        expect_that(time.name(tt), equals(colnames(data$time)))
-        expect_that(measurement.names(tt), equals(maybe(colnames(data$measurement), character())))
-        expect_that(auxiliary.names(tt), equals(maybe(colnames(data$auxiliary), character())))
+        expect_that(index_names(tt), equals(colnames(data$index)))
+        expect_that(time_name(tt), equals(colnames(data$time)))
+        expect_that(measurement_names(tt), equals(maybe(colnames(data$measurement), character())))
+        expect_that(auxiliary_names(tt), equals(maybe(colnames(data$auxiliary), character())))
     })
 }
 
 context("as.time.table adds correct entity/time key")
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
-        expect_that(key(tt), equals(c(index.names(tt), time.name(tt))))
+        expect_that(key(tt), equals(c(index_names(tt), time_name(tt))))
     })
 }
 
@@ -200,7 +200,7 @@ for(nm in names(test.tables)) {
 context("as.time.table sets key correctly")
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
-        expect_equal(key(tt), c(index.names(tt), time.name(tt)))
+        expect_equal(key(tt), c(index_names(tt), time_name(tt)))
     })
 }
 
@@ -222,9 +222,9 @@ for(nm in names(test.tables)) {
         expect_equal( key(subset.time.table.parts(tt, with.index=T, with.time=T, rekey=T))
                     , key(tt) )
         expect_equal( key(subset.time.table.parts(tt, with.index=T, with.time=F, rekey=T))
-                    , index.names(tt) )
+                    , index_names(tt) )
         expect_equal( key(subset.time.table.parts(tt, with.index=F, with.time=T, rekey=T))
-                    , time.name(tt) )
+                    , time_name(tt) )
         # measurement/auxiliary are generic functions introduced in timetablR,
         # whence the dedicated tests (had some issues with optional arguments to
         # generic functions).
@@ -235,17 +235,19 @@ for(nm in names(test.tables)) {
     })
 }
 
+# TODO: Update this to the new index/times behaviour (i.e. add an example where
+# one indexes using a data.table with additional columns.
 context("Subsetting by expression produces the correct (number of) rows and cols")
 for(nm in names(test.tables)) {
     set.seed(483352)
     with(test.tables[[nm]], {
-        picks.name <- safe.name(tt)
+        picks.name <- safe_name(tt)
         test.picks <- as.logical(sample.int(2, nrow(tt), T)-1)
         subset.external.expr <- subset(tt, expr=test.picks)
         tt2 <- as.time.table( copy(tt)[,eval(picks.name):=test.picks]
-                            , index.names(tt), time.name(tt)
-                            , c(measurement.names(tt), picks.name)
-                            , auxiliary.names(tt)
+                            , index_names(tt), time_name(tt)
+                            , c(measurement_names(tt), picks.name)
+                            , auxiliary_names(tt)
                             , frequency=attr(tt, "frequency") )
         subset.internal.expr <- subset(tt2, expr=get(picks.name)==TRUE)
         expect_equal(nrow(subset.external.expr), sum(test.picks))
@@ -283,10 +285,10 @@ for(nm in names(test.tables)) {
             ttl <- lag(tt)
             expect_equal(colnames(tt), colnames(ttl))
             expect_true("time.table" %in% class(tt))
-            expect_equal(index.names(tt), index.names(ttl))
-            expect_equal(time.name(tt), time.name(ttl))
-            expect_equal(measurement.names(tt), measurement.names(ttl))
-            expect_equal(auxiliary.names(tt), auxiliary.names(ttl))
+            expect_equal(index_names(tt), index_names(ttl))
+            expect_equal(time_name(tt), time_name(ttl))
+            expect_equal(measurement_names(tt), measurement_names(ttl))
+            expect_equal(auxiliary_names(tt), auxiliary_names(ttl))
         }
     })
 }
@@ -304,11 +306,11 @@ for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
             lagged1 <- lag(tt)
-            lagged2 <- copy(tt)[,eval(time.name(tt)):=get(time.name(tt))-delta]
-            mn  <- measurement.names(tt)
-            mnl <- paste0("LAGGED", measurement.names(tt))
+            lagged2 <- copy(tt)[,eval(time_name(tt)):=get(time_name(tt))-delta]
+            mn  <- measurement_names(tt)
+            mnl <- paste0("LAGGED", measurement_names(tt))
             setnames(lagged2, mn, mnl)
-            merged <- merge(lagged1, lagged2, by=c(index.names(tt), time.name(tt)), all=FALSE)
+            merged <- merge(lagged1, lagged2, by=c(index_names(tt), time_name(tt)), all=FALSE)
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnl[i]]], rep(0, nrow(merged)))
             }
@@ -321,11 +323,11 @@ for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
             lagged1 <- lag(tt, steps=-1L)
-            lagged2 <- copy(tt)[,eval(time.name(tt)):=get(time.name(tt))+delta]
-            mn  <- measurement.names(tt)
-            mnl <- paste0("LAGGED", measurement.names(tt))
+            lagged2 <- copy(tt)[,eval(time_name(tt)):=get(time_name(tt))+delta]
+            mn  <- measurement_names(tt)
+            mnl <- paste0("LAGGED", measurement_names(tt))
             setnames(lagged2, mn, mnl)
-            merged <- merge(lagged1, lagged2, by=c(index.names(tt), time.name(tt)), all=FALSE)
+            merged <- merge(lagged1, lagged2, by=c(index_names(tt), time_name(tt)), all=FALSE)
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnl[i]]], rep(0, nrow(merged)))
             }
@@ -352,32 +354,32 @@ for(nm in names(test.tables)) {
             ttd <- diff(tt)
             expect_equal(colnames(tt), colnames(ttd))
             expect_true("time.table" %in% class(ttd))
-            expect_equal(index.names(tt), index.names(ttd))
-            expect_equal(time.name(tt), time.name(ttd))
-            expect_equal(measurement.names(tt), measurement.names(ttd))
-            expect_equal(auxiliary.names(tt), auxiliary.names(ttd))
+            expect_equal(index_names(tt), index_names(ttd))
+            expect_equal(time_name(tt), time_name(ttd))
+            expect_equal(measurement_names(tt), measurement_names(ttd))
+            expect_equal(auxiliary_names(tt), auxiliary_names(ttd))
         }
     })
 }
 
-context("affix.names works the way one expects")
+context("affix_names works the way one expects")
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         ttc <- copy(tt)
-        affix.names(ttc, NULL, NULL, "a", "b", "c", "d")
-        expect_equal( measurement.names(ttc)
-                    , pasteSane0("a", measurement.names(tt), "b") )
-        expect_equal( auxiliary.names(ttc)
-                    , pasteSane0("c", auxiliary.names(tt), "d") )
-        affix.names(ttc, "x", "y")
-        expect_equal( measurement.names(ttc)
-                    , pasteSane0("xa", measurement.names(tt), "by") )
-        expect_equal( auxiliary.names(ttc)
-                    , pasteSane0("xc", auxiliary.names(tt), "dy") )
-        expect_equal( index.names(ttc)
-                    , index.names(tt) )
-        expect_equal( time.name(ttc)
-                    , time.name(tt) )
+        affix_names(ttc, NULL, NULL, "a", "b", "c", "d")
+        expect_equal( measurement_names(ttc)
+                    , pasteSane0("a", measurement_names(tt), "b") )
+        expect_equal( auxiliary_names(ttc)
+                    , pasteSane0("c", auxiliary_names(tt), "d") )
+        affix_names(ttc, "x", "y")
+        expect_equal( measurement_names(ttc)
+                    , pasteSane0("xa", measurement_names(tt), "by") )
+        expect_equal( auxiliary_names(ttc)
+                    , pasteSane0("xc", auxiliary_names(tt), "dy") )
+        expect_equal( index_names(ttc)
+                    , index_names(tt) )
+        expect_equal( time_name(ttc)
+                    , time_name(tt) )
     })
 }
 
@@ -386,25 +388,25 @@ for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
             diffed <- diff(tt)
-            mn  <- measurement.names(tt)
-            mnd <- paste0("D", measurement.names(tt))
-            affix.names(diffed, measurement.prefix="D")
+            mn  <- measurement_names(tt)
+            mnd <- paste0("D", measurement_names(tt))
+            affix_names(diffed, measurement.prefix="D")
             diffed <- lag(diffed, steps=-1L)
             for(i in seq_along(mn)) {
                 col <- mnd[i]
                 base <- tt[, list(baseval=head(get(mn[i])))
-                           , keyby=c(index.names(tt), time.name(tt)) ]
-                diffed[ get(time.name(diffed)) == start(diffed)
+                           , keyby=c(index_names(tt), time_name(tt)) ]
+                diffed[ get(time_name(diffed)) == start(diffed)
                       , eval(col):=base[as.data.table(.BY)]$baseval
-                      , by=eval(c(index.names(tt), time.name(tt))) ]
-                diffed[,eval(col):=cumsum(get(col)),by=eval(index.names(tt))]
+                      , by=eval(c(index_names(tt), time_name(tt))) ]
+                diffed[,eval(col):=cumsum(get(col)),by=eval(index_names(tt))]
             }
-            merged <- merge(tt, diffed, by=c(index.names(tt), time.name(tt)), all=FALSE)
+            merged <- merge(tt, diffed, by=c(index_names(tt), time_name(tt)), all=FALSE)
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnd[i]]], rep(0, nrow(merged)))
             }
-            expect_equivalent(merged[,index.names(tt),with=F], index(tt))
-            expect_equivalent(merged[,time.name(tt),with=F], time(tt))
+            expect_equivalent(merged[,index_names(tt),with=F], index(tt))
+            expect_equivalent(merged[,time_name(tt),with=F], time(tt))
         }
     })
 }

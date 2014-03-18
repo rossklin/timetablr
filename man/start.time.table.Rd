@@ -4,6 +4,9 @@
 \usage{
 \method{start}{time.table}(tt)
 }
+\arguments{
+  \item{tt}{time.table to extract starting time from}
+}
 \description{
 time.table starting time
 }

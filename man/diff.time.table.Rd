@@ -2,7 +2,8 @@
 \alias{diff.time.table}
 \title{Difference time.table}
 \usage{
-\method{diff}{time.table}(tt, forward = TRUE, preserve.frequency = TRUE)
+\method{diff}{time.table}(tt, forward = TRUE, preserve.frequency = TRUE,
+  ...)
 }
 \arguments{
   \item{tt}{time.table to difference}
@@ -10,7 +11,9 @@
   \item{forward}{compute forward differences (default).}
 
   \item{preserve.frequency}{preserve the range of (indeed,
-  exact) values present in \code{tt}
+  exact) values present in \code{tt}}
+
+  \item{...}{unused
 
   Note that for now only forward==TRUE and
   preserve.frequency==TRUE are implemented.}

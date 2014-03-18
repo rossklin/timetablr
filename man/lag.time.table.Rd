@@ -3,7 +3,7 @@
 \title{Lag time.table}
 \usage{
 \method{lag}{time.table}(tt, forward = TRUE, steps = 1L,
-  preserve.frequency = TRUE)
+  preserve.frequency = TRUE, ...)
 }
 \arguments{
   \item{tt}{time.table to lag}
@@ -14,7 +14,9 @@
   delta)}
 
   \item{preserve.frequency}{Preserve range (indeed, the
-  exact values) of index/time values present in \code{tt}
+  exact values) of index/time values present in \code{tt}}
+
+  \item{...}{unused
 
   Note that for now preserve.freuqency==FALSE is not
   implemented.}

@@ -1,8 +1,8 @@
-\name{cv.split.time.table}
-\alias{cv.split.time.table}
+\name{cv_split_time_table}
+\alias{cv_split_time_table}
 \title{Split a time.table for cross validation}
 \usage{
-cv.split.time.table(tt, counts = NULL, props = NULL,
+cv_split_time_table(tt, counts = NULL, props = NULL,
   sample.points = FALSE)
 }
 \arguments{

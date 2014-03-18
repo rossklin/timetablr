@@ -4,6 +4,9 @@
 \usage{
 \method{end}{time.table}(tt)
 }
+\arguments{
+  \item{tt}{time.table to extract ending time from}
+}
 \description{
 time.table ending time
 }

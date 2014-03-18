@@ -70,7 +70,7 @@ pasteSane0 <- function(...) {
     else { paste0(...) }
 }
 
-safe.name <- function(..., num=1, extra=c(), sep=".") {
+safe_name <- function(..., num=1, extra=c(), sep=".") {
     if(num < 1) return(character(0))
     taboo <- unique(c(c(lapply(list(...), names), recursive=TRUE), extra))
     #

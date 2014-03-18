@@ -1,8 +1,8 @@
-\name{cv.assign.sets}
-\alias{cv.assign.sets}
+\name{cv_assign_sets}
+\alias{cv_assign_sets}
 \title{Genrate cross validation sets}
 \usage{
-cv.assign.sets(tt, counts = NULL, props = NULL, sample.points = FALSE,
+cv_assign_sets(tt, counts = NULL, props = NULL, sample.points = FALSE,
   cv.set.name = "cv.set", keep.all = FALSE)
 }
 \arguments{

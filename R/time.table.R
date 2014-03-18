@@ -37,7 +37,7 @@ guess.frequency <- function(times, groups) {
     values <- data.table(timecol=times, groupcol=groups)
     tname <- grep("^timecol", colnames(values), value=T)
     gname <- grep("^groupcol", colnames(values), value=T)
-    tdname <- safe.name(values)
+    tdname <- safe_name(values)
     delta <- values[, eval(tdname):=c(NA, diff(sort(.SD[[tname]])))
                     , by=eval(gname)][, min(.SD[[tdname]], na.rm=TRUE)]
     if(is.infinite(delta)) warning("Insufficient data to guess time delta")
@@ -74,9 +74,12 @@ as.time.table <- function( df, id.vars, time.var
         aux.vars <- setdiff(colnames(df), c(id.vars, union(time.var, measurement.vars)))
     #
     tt <- data.table(df)[,c(id.vars, time.var, measurement.vars, aux.vars),with=F]
+    class(tt) <- c("time.table", class(tt))
+    # TODO: class<- invalidates internal selfref for data table
+    tt <- copy(tt)
+    #
     setkeyv(tt, c(id.vars, time.var))
     #
-    class(tt) <- c("time.table", class(tt))
     setattr(tt,      "id.vars", id.vars)
     setattr(tt,    "time.var" , time.var)
     setattr(tt, "measurement.vars", measurement.vars)
@@ -121,10 +124,10 @@ subset.time.table.parts <- function( tt, with.index=FALSE, with.time=FALSE
                                    , with.measurement=FALSE, with.auxiliary=FALSE
                                    , rekey=(with.index | with.time)
                                    , manual=c() ) {
-    cols <- unique(c( if(with.index) index.names(tt) else c()
-                    , if(with.time) time.name(tt) else c()
-                    , if(with.measurement) measurement.names(tt) else c()
-                    , if(with.auxiliary) auxiliary.names(tt) else c()
+    cols <- unique(c( if(with.index) index_names(tt) else c()
+                    , if(with.time) time_name(tt) else c()
+                    , if(with.measurement) measurement_names(tt) else c()
+                    , if(with.auxiliary) auxiliary_names(tt) else c()
                     , manual ))
     tt2 <- tt[,cols,with=FALSE]
     if(rekey) {
@@ -134,53 +137,83 @@ subset.time.table.parts <- function( tt, with.index=FALSE, with.time=FALSE
 }
 
 #' Extract time.table index
+#' @export
 index.time.table <- function(tt, with.time=FALSE, rekey=TRUE)
     subset.time.table.parts(tt, TRUE, with.time, FALSE, FALSE, rekey)
 
 #' Extract time.table times
+#' @export
 time.time.table <- function(tt, with.index=FALSE, rekey=FALSE)
     subset.time.table.parts(tt, with.index, TRUE, FALSE, FALSE, rekey)
 
 #' Extract time.table measurements
+#' @export
 measurement.time.table <- function( tt, with.index=FALSE, with.time=FALSE
                                   , rekey=(with.index|with.time) )
     subset.time.table.parts(tt, with.index, with.time, TRUE, FALSE, rekey=rekey)
 
 #' Extract time.table auxiliaries
+#' @export
 auxiliary.time.table <- function( tt, with.index=FALSE, with.time=FALSE
                                 , rekey=(with.index|with.time) ) 
     subset.time.table.parts(tt, with.index, with.time, FALSE, TRUE, rekey=rekey)
 
 #' Index column name(s)
-#' 
+#'
+#' @param tt time.table to extract names from
 #' @export
-index.names <- function(tt) attr(tt, "id.vars")
+index_names <- function(tt, with.time=FALSE)
+    c(attr(tt, "id.vars"), if(with.time) attr(tt, "time.var") else c())
+
 #' Time column name
-#' 
+#'
+#' @param tt time.table to extract names from
 #' @export
-time.name <- function(tt) attr(tt, "time.var")
+time_name <- function(tt, with.index=FALSE)
+    c(if(with.index) attr(tt, "id.vars") else c(), attr(tt, "time.var"))
+
 #' Measurement column name(s)
-#' 
+#'
+#' @param tt time.table to extract names from
 #' @export
-measurement.names <- function(tt) attr(tt, "measurement.vars")
+measurement_names <- function(tt, with.index=FALSE, with.time=FALSE)
+    c( if(with.index) attr(tt, "id.vars") else c()
+     , if(with.time) attr(tt, "time.var") else c()
+     , attr(tt, "measurement.vars") )
+
 #' Auxiliary column name(s)
-#' 
+#'
+#' @param tt time.table to extract names from
 #' @export
-auxiliary.names <- function(tt) attr(tt, "aux.vars")
+auxiliary_names <- function(tt, with.index=FALSE, with.time=FALSE)
+    c( if(with.index) attr(tt, "id.vars") else c()
+     , if(with.time) attr(tt, "time.var") else c()
+     , attr(tt, "aux.vars") )
 
 #' time.table time delta
+#'
+#' @param tt time.table to extract time delta from
+#' @export
 deltat.time.table <- function(tt) attr(tt, "frequency")$delta
 #' time.table frequency
+#'
+#' @param tt time.table to extract frequency from
+#' @export
 frequency.time.table <- function(tt) 1/attr(tt, "frequency")$delta
 
 #' List of time points within a (regular) time.table
-#' 
+#'
+#' @param tt time.table to extract time range from
 #' @export
 timerange <- function(tt) with(attr(tt, "frequency"), seq(from, to, delta))
 
 #' time.table starting time
+#'
+#' @param tt time.table to extract starting time from
 start.time.table <- function(tt) attr(tt, "frequency")$from
 #' time.table ending time
+#'
+#' @param tt time.table to extract ending time from
 end.time.table <- function(tt) attr(tt, "frequency")$to
 
 #' Subset a time table
@@ -193,21 +226,38 @@ end.time.table <- function(tt) attr(tt, "frequency")$to
 #' @param vars Non-index/time columns to subset
 #' @param index data.table/data.frame containing indices or indices and times to subset
 #' @param times times within each index to subset (to not specify if index already contains times to extract!)
+#' @param preserve.frequency whether to preserve (or reguess) frequency information after subsetting
 #'
+#' @details
 #' Note that for now \code{vars} *must* be a collection of strings.
 #'
+#' One can specify more than one of \code{expr}, \code{vars}, and
+#' \code{index}/\code{time}, in which case the time.table is first subset by
+#' index/time, then by expr and finally by vars, meaning index/expr can rely on
+#' variables removed after the subset.  Note that this can result in unexpected
+#' behaviour if expr evaluates to a vector of row numbers.
+#'
+#' Furthermore both \code{vars} and \code{expr} can mention extra columns in
+#' index/time (merged in the intermediate data.table in the \code{index} step).
+#'
+#' If a column name exists in both \code{tt} and \code{index}/\code{time} then
+#' the name will referr to the corresponding column of \code{tt} *if* the column
+#' is to be kept (i.e. it is in \code{vars}), else it will refer to the merged
+#' value from \code{index}/\code{time}.
+#' 
 #' @export
 subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
                              , preserve.frequency = NULL ) {
-    keep.measurement <- measurement.names(tt)
-    keep.aux     <- auxiliary.names(tt)
+    keep.measurement <- measurement_names(tt)
+    keep.aux         <- auxiliary_names(tt)
     if(!is.null(vars)) {
-        stopifnot(all(vars %in% union(keep.measurement, keep.aux)))
         keep.measurement <- keep.measurement[keep.measurement %in% vars]
         keep.aux         <- keep.aux[keep.aux %in% vars]
     }
     #
-    tt2 <- tt[,c(index.names(tt), time.name(tt), keep.measurement, keep.aux), with=F]
+    tt2 <- tt[,c(index_names(tt), time_name(tt), keep.measurement, keep.aux), with=F]
+    extra.aux <- c( if(!is.null(index)) setdiff(colnames(index), colnames(tt2)) else c()
+                  , if(!is.null(times)) setdiff(colnames(times), colnames(tt2)) else c() )
     #
     stopifnot(!is.null(index) | is.null(times))
     if(!is.null(index)) {
@@ -233,10 +283,12 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
     }
     #
     as.time.table( tt2
-                 , id.vars=index.names(tt)
-                 , time.var=time.name(tt)
+                 , id.vars=index_names(tt)
+                 , time.var=time_name(tt)
                  , measurement.vars=keep.measurement
-                 , aux.vars=keep.aux
+                 , aux.vars=c( keep.aux
+                             , if (is.null(vars)) extra.aux
+                               else intersect(extra.aux, vars) )
                  , frequency=preserve.frequency )
 }
 
@@ -250,18 +302,19 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
 #' @param forward Shift forward (default)
 #' @param steps Number of steps to shift (i.e. number of delta)
 #' @param preserve.frequency Preserve range (indeed, the exact values) of index/time values present in \code{tt}
+#' @param ... unused
 #'
 #' Note that for now preserve.freuqency==FALSE is not implemented.
 #'
 #' @export
-lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE) {
+lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE, ...) {
     stopifnot(preserve.frequency)
     if(!forward) steps <- -steps
     #
-    tcol  <- time.name(tt)
-    icols <- index.names(tt)
-    acols <- auxiliary.names(tt)
-    mcols <- measurement.names(tt)
+    tcol  <- time_name(tt)
+    icols <- index_names(tt)
+    acols <- auxiliary_names(tt)
+    mcols <- measurement_names(tt)
     delta <- deltat(tt)
     if(is.null(delta)) stop("Cannot lag a time.table without frequency information")
     #
@@ -275,7 +328,7 @@ lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE) 
     # Something weird is going on, somehow R won't let me 
     # one-line this...
     keys <- tt[,c(icols, tcol, acols),with=F]
-    same.str.as(tt2[keys], tt)
+    same_str_as(tt2[keys], tt)
 }
 
 #' Difference time.table
@@ -289,18 +342,19 @@ lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE) 
 #' @param tt time.table to difference
 #' @param forward compute forward differences (default).
 #' @param preserve.frequency preserve the range of (indeed, exact) values present in \code{tt}
+#' @param ... unused
 #'
 #' Note that for now only forward==TRUE and preserve.frequency==TRUE are implemented.
 #'
 #' @export
-diff.time.table <- function(tt, forward=TRUE, preserve.frequency=TRUE) {
+diff.time.table <- function(tt, forward=TRUE, preserve.frequency=TRUE, ...) {
     stopifnot(forward & preserve.frequency)
     #
-    tt.lagged <- lag( tt, steps=1L, forward=forward
-                    , preserve.frequency=TRUE )
+    tt.lagged <- lag.time.table( tt, steps=1L, forward=forward
+                               , preserve.frequency=TRUE )
     stopifnot(all.equal( index(tt, with.time=T)
                        , index(tt.lagged, with.time=T) ))
-    for(col in measurement.names(tt)) {
+    for(col in measurement_names(tt)) {
         tt.lagged[[col]] <- tt.lagged[[col]] - tt[[col]]
     }
     tt.lagged
@@ -321,15 +375,15 @@ diff.time.table <- function(tt, forward=TRUE, preserve.frequency=TRUE) {
 #' columns in \code{dt} not in \code{tt} are lost.
 #'
 #' @export
-same.str.as <- function( dt, tt
+same_str_as <- function( dt, tt
                        , add.index=c()
                        , add.measurement=c()
                        , add.auxiliary=c() ) {
     as.time.table( dt
-                 , id.vars=c(index.names(tt), add.index)
-                 , time.var=time.name(tt)
-                 , measurement.vars=c(measurement.names(tt), add.measurement)
-                 , aux.vars=c(auxiliary.names(tt), add.auxiliary)
+                 , id.vars=c(index_names(tt), add.index)
+                 , time.var=time_name(tt)
+                 , measurement.vars=c(measurement_names(tt), add.measurement)
+                 , aux.vars=c(auxiliary_names(tt), add.auxiliary)
                  , frequency=attr(tt, "frequency") )
 }
 
@@ -350,7 +404,7 @@ same.str.as <- function( dt, tt
 #' Note, changes tt by reference (i.e. mutates it).
 #' 
 #' @export
-affix.names <- function( tt
+affix_names <- function( tt
                        , prefix=NULL, suffix=NULL
                        , measurement.prefix=NULL, measurement.suffix=NULL
                        , auxiliary.prefix=NULL, auxiliary.suffix=NULL ) {
@@ -359,9 +413,9 @@ affix.names <- function( tt
     auxiliary.prefix <- maybe(maybe(auxiliary.prefix, prefix), "")
     auxiliary.suffix <- maybe(maybe(auxiliary.suffix, suffix), "")
     #
-    newmn <- pasteSane0(measurement.prefix, measurement.names(tt), measurement.suffix)
-    newan <- pasteSane0(auxiliary.prefix, auxiliary.names(tt), auxiliary.suffix)
-    setnames(tt, c(measurement.names(tt), auxiliary.names(tt)), c(newmn, newan))
+    newmn <- pasteSane0(measurement.prefix, measurement_names(tt), measurement.suffix)
+    newan <- pasteSane0(auxiliary.prefix, auxiliary_names(tt), auxiliary.suffix)
+    setnames(tt, c(measurement_names(tt), auxiliary_names(tt)), c(newmn, newan))
     #
     setattr(tt, "measurement.vars", newmn)
     setattr(tt,     "aux.vars",     newan)
@@ -394,14 +448,14 @@ compute.proportions <- function(total, props, ties="random") {
 #' @param keep.all whether to keep datapoints not assigned to a subset
 #'
 #' @export
-cv.assign.sets  <- 
+cv_assign_sets  <- 
     function( tt, counts = NULL, props = NULL
             , sample.points = FALSE
             , cv.set.name = "cv.set"
             , keep.all = FALSE ) {
     stopifnot(xor(is.null(counts), is.null(props)))
-    idcol <- index.names(tt)
-    tcol  <- time.name(tt)
+    idcol <- index_names(tt)
+    tcol  <- time_name(tt)
     #
     idxs <- unique(index(tt, with.time=sample.points))
     #
@@ -429,12 +483,12 @@ cv.assign.sets  <-
 #' \code{cols} values associated to each element of the list.
 #'
 #' @export
-split.by.cols <- function(dt, cols) {
+split_by_cols <- function(dt, cols) {
     #
     split.by <- dt[,cols,with=F]
     #setkeyv(split.by, 
     unq <- unique(split.by)
-    factor.name <- safe.name(unq)
+    factor.name <- safe_name(unq)
     unq[,eval(factor.name):=as.factor(.I)]
     setkeyv(unq, cols)
     f <- unq[split.by, factor.name, with=FALSE]
@@ -447,8 +501,8 @@ split.by.cols <- function(dt, cols) {
 #TODO: Make f optionally be a separate vector (in order to comply with
 # the data.frame split spec?).
 split.time.table <- function(x, f, drop=FALSE) {
-    result <- split.by.cols(x, f)
-    structure(lapply(result, same.str.as, tt=x), values=attr(result, "values"))
+    result <- split_by_cols(x, f)
+    structure(lapply(result, same_str_as, tt=x), values=attr(result, "values"))
 }
 
 #' Split a time.table for cross validation
@@ -464,14 +518,14 @@ split.time.table <- function(x, f, drop=FALSE) {
 #' \code{props} vector.
 #'
 #' @export
-cv.split.time.table <- function( tt, counts = NULL, props = NULL
+cv_split_time_table <- function( tt, counts = NULL, props = NULL
                                , sample.points = FALSE ) {
-    split.name <- safe.name(tt)
-    splits <- cv.assign.sets( tt, counts, props, sample.points, keep.all=FALSE
+    split.name <- safe_name(tt)
+    splits <- cv_assign_sets( tt, counts, props, sample.points, keep.all=FALSE
                             , cv.set.name=split.name )
-    result <- split.by.cols(tt[splits], split.name)
+    result <- split_by_cols(tt[splits], split.name)
     nms <- unlist(attr(result, "values"))
-    result <- lapply(result, same.str.as, tt=tt)
+    result <- lapply(result, same_str_as, tt=tt)
     names(result) <- nms
     result
 }

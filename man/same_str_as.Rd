@@ -1,8 +1,8 @@
-\name{same.str.as}
-\alias{same.str.as}
+\name{same_str_as}
+\alias{same_str_as}
 \title{Create time.table from a template}
 \usage{
-same.str.as(dt, tt, add.index = c(), add.measurement = c(),
+same_str_as(dt, tt, add.index = c(), add.measurement = c(),
   add.auxiliary = c())
 }
 \arguments{
