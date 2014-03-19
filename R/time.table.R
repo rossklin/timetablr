@@ -423,7 +423,7 @@ affix_names <- function( tt
     tt
 }
 
-compute.proportions <- function(total, props, ties="random") {
+compute_proportions <- function(total, props, ties="random") {
     stopifnot(sum(props) <= 1)
     stopifnot(ties=="random")
     counts <- sapply(props, function(p) floor(p * total))
@@ -460,7 +460,7 @@ cv_assign_sets  <-
     idxs <- unique(index(tt, with.time=sample.points))
     #
     if(is.null(counts))
-        counts <- compute.proportions(props)
+        counts <- compute_proportions(nrow(tt), props)
     #
     labels <- if(!is.null(names(counts))) names(counts)
               else seq_along(counts)
