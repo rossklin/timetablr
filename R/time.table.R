@@ -460,7 +460,7 @@ cv_assign_sets  <-
     idxs <- unique(index(tt, with.time=sample.points))
     #
     if(is.null(counts))
-        counts <- compute_proportions(nrow(tt), props)
+        counts <- compute_proportions(nrow(idxs), props)
     #
     labels <- if(!is.null(names(counts))) names(counts)
               else seq_along(counts)
