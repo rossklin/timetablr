@@ -329,7 +329,7 @@ lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE, 
     # Something weird is going on, somehow R won't let me 
     # one-line this...
     keys <- tt[,c(icols, tcol, acols),with=F]
-    same_str_as(tt2[keys], tt)
+    same_str_as(merge(keys, tt2, by=c(index_names(tt), time_name(tt)), all.x=TRUE, all.y=FALSE), tt)
 }
 
 #' Difference time.table
