@@ -74,9 +74,10 @@ as.time.table <- function( df, id.vars, time.var
         aux.vars <- setdiff(colnames(df), c(id.vars, union(time.var, measurement.vars)))
     #
     tt <- data.table(df)[,c(id.vars, time.var, measurement.vars, aux.vars),with=F]
-    class(tt) <- c("time.table", class(tt))
     # TODO: class<- invalidates internal selfref for data table
     tt <- tt[,c(id.vars, time.var, measurement.vars, aux.vars), with=FALSE]
+    class(tt) <- c("time.table", class(tt))
+    tt <- copy(tt)
     #
     setkeyv(tt, c(id.vars, time.var))
     #
