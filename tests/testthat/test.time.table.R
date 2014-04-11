@@ -192,15 +192,15 @@ expect_that_all <- function(lst, ...) lapply(setNames(nm=maybe(names(lst), seq_a
     expect_that(lst[[x]], ..., label=if(is.null(names(lst))) as.character(lst[[x]]) else x)
 })
 
-context("as.time.table does not produce unexpected structure")
+test_that("as.time.table does not produce unexpected structure", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_that(setequal(colnames(tt), colnames(df)), is_true())
         expect_that(nrow(tt), equals(with(number, timepoints*entities)))
     })
-}
+}})
 
-context("as.time.table stores column kinds and internal order")
+test_that("as.time.table stores column kinds and internal order", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_that(index_names(tt), equals(colnames(data$index)))
@@ -208,16 +208,16 @@ for(nm in names(test.tables)) {
         expect_that(measurement_names(tt), equals(maybe(colnames(data$measurement), character())))
         expect_that(auxiliary_names(tt), equals(maybe(colnames(data$auxiliary), character())))
     })
-}
+}})
 
-context("as.time.table adds correct entity/time key")
+test_that("as.time.table adds correct entity/time key", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_that(key(tt), equals(c(index_names(tt), time_name(tt))))
     })
-}
+}})
 
-context("as.time.table guesses correct frequency information")
+test_that("as.time.table guesses correct frequency information", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1) {
@@ -226,16 +226,16 @@ for(nm in names(test.tables)) {
             expect_equal(deltat(tt), NULL)
         }
     })
-}
+}})
 
-context("as.time.table sets key correctly")
+test_that("as.time.table sets key correctly", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_equal(key(tt), c(index_names(tt), time_name(tt)))
     })
-}
+}})
 
-context("Column subsetting operations preserve (at least number of) rows")
+test_that("Column subsetting operations preserve (at least number of) rows",{
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_equal(nrow(tt), nrow(index(tt)))
@@ -245,9 +245,9 @@ for(nm in names(test.tables)) {
         if(number$auxiliary > 0)
             expect_equal(nrow(tt), nrow(auxiliary(tt)))
     })
-}
+}})
 
-context("Column subsetting operations add correct key when requested")
+test_that("Column subsetting operations add correct key when requested", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         expect_equal( key(subset.time.table.parts(tt, with.index=T, with.time=T, rekey=T))
@@ -264,11 +264,11 @@ for(nm in names(test.tables)) {
         expect_equal( key(auxiliary(tt, with.index=T, with.time=T, rekey=T))
                     , key(tt) )
     })
-}
+}})
 
 # TODO: Update this to the new index/times behaviour (i.e. add an example where
 # one indexes using a data.table with additional columns.
-context("Subsetting by expression produces the correct (number of) rows and cols")
+test_that("Subsetting by expression produces the correct (number of) rows and cols", {
 for(nm in names(test.tables)) {
     set.seed(483352)
     with(test.tables[[nm]], {
@@ -284,9 +284,9 @@ for(nm in names(test.tables)) {
         expect_equal(nrow(subset.external.expr), sum(test.picks))
         expect_equal(nrow(subset.internal.expr), sum(test.picks))
     })
-}
+}})
 
-context("Subsetting times guesses new frequency")
+test_that("Subsetting times guesses new frequency", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints >= 4) {
@@ -296,9 +296,9 @@ for(nm in names(test.tables)) {
             expect_equal(deltat(tt2), 2*deltat(tt))
         }
     })
-}
+}})
 
-context("lag preserves exact index/time (if requested)")
+test_that("lag preserves exact index/time (if requested)", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1) {
@@ -307,9 +307,9 @@ for(nm in names(test.tables)) {
             expect_equal(time(tt), time(ttl))
         }
     })
-}
+}})
 
-context("lag preserves columns and time.table structure")
+test_that("lag preserves columns and time.table structure", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1) {
@@ -322,17 +322,17 @@ for(nm in names(test.tables)) {
             expect_equal(auxiliary_names(tt), auxiliary_names(ttl))
         }
     })
-}
+}})
 
-context("lag doesn't change auxiliary values")
+test_that("lag doesn't change auxiliary values", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1)
             expect_equal(auxiliary(tt), auxiliary(lag(tt)))
     })
-}
+}})
 
-context("lag lags measurements")
+test_that("lag lags measurements", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
@@ -341,15 +341,17 @@ for(nm in names(test.tables)) {
             mn  <- measurement_names(tt)
             mnl <- paste0("LAGGED", measurement_names(tt))
             setnames(lagged2, mn, mnl)
-            merged <- merge(lagged1, lagged2, by=c(index_names(tt), time_name(tt)), all=FALSE)
+            merged <- data.table:::merge.data.table( lagged1, lagged2
+                                                   , by=c(index_names(tt), time_name(tt))
+                                                   , all=FALSE )
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnl[i]]], rep(0, nrow(merged)))
             }
         }
     })
-}
+}})
 
-context("negative lag works as expected")
+test_that("negative lag works as expected", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
@@ -358,16 +360,16 @@ for(nm in names(test.tables)) {
             mn  <- measurement_names(tt)
             mnl <- paste0("LAGGED", measurement_names(tt))
             setnames(lagged2, mn, mnl)
-            merged <- merge(lagged1, lagged2, by=c(index_names(tt), time_name(tt)), all=FALSE)
+            merged <- data.table:::merge.data.table(lagged1, lagged2, by=c(index_names(tt), time_name(tt)), all=FALSE)
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnl[i]]], rep(0, nrow(merged)))
             }
         }
     })
-}
+}})
 
 
-context("diff preserves exact index/time (if requested)")
+test_that("diff preserves exact index/time (if requested)", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1) {
@@ -376,9 +378,9 @@ for(nm in names(test.tables)) {
             expect_equal(time(tt), time(ttd))
         }
     })
-}
+}})
 
-context("diff preserves columns and time.table structure")
+test_that("diff preserves columns and time.table structure", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$timepoints > 1) {
@@ -391,9 +393,9 @@ for(nm in names(test.tables)) {
             expect_equal(auxiliary_names(tt), auxiliary_names(ttd))
         }
     })
-}
+}})
 
-context("affix_names works the way one expects")
+test_that("affix_names works the way one expects", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         ttc <- copy(tt)
@@ -412,9 +414,9 @@ for(nm in names(test.tables)) {
         expect_equal( time_name(ttc)
                     , time_name(tt) )
     })
-}
+}})
 
-context("diff diffs values")
+test_that("diff diffs values", {
 for(nm in names(test.tables)) {
     with(test.tables[[nm]], {
         if(number$measurement > 0 & number$timepoints > 1) {
@@ -432,7 +434,7 @@ for(nm in names(test.tables)) {
                       , by=eval(c(index_names(tt), time_name(tt))) ]
                 diffed[,eval(col):=cumsum(get(col)),by=eval(index_names(tt))]
             }
-            merged <- merge(tt, diffed, by=c(index_names(tt), time_name(tt)), all=FALSE)
+            merged <- data.table:::merge.data.table(tt, diffed, by=c(index_names(tt), time_name(tt)), all=FALSE)
             for(i in seq_along(mn)) {
                 expect_equivalent(merged[[mn[i]]] - merged[[mnd[i]]], rep(0, nrow(merged)))
             }
@@ -440,10 +442,47 @@ for(nm in names(test.tables)) {
             expect_equivalent(merged[,time_name(tt),with=F], time(tt))
         }
     })
-}
+}})
 
-## context("")
+test_that("Merging time.table produces time.table", {
+for(nm in names(test.tables)) {
+    with(test.tables[[nm]], {
+        tt2 <- copy(tt)
+        affix_names(tt2, prefix="SAFE.")
+        tt.new <- merge(tt, tt2)
+        expect_is(tt.new, "time.table")
+    })
+}})
+
+test_that("disjoint time.tables merge trivially", {
+for(nm in names(test.tables)) {
+    with(test.tables[[nm]], {
+        tt2 <- copy(tt)
+        affix_names(tt2, prefix="TEST.ME.")
+        merge1 <- as.data.table(merge(tt, tt2, all=TRUE))
+        merge2 <- as.data.table(data.table:::merge.data.table(tt, tt2, all=TRUE, by=c(index_names(tt, TRUE))))
+        expect_true(setequal(colnames(merge1), colnames(merge2)))
+        expect_equivalent(merge1, merge2[,colnames(merge1),with=F])
+    })
+}})
+
+test_that("merging table with itself using 'add' doubles values", {
+for(nm in names(test.tables)) {
+    with(test.tables[[nm]], {
+        if(number$measurement > 0) {
+            funs <- setNames(list(`+`)[rep(1, number$measurement)], names$measurement)
+            tt2 <- copy(tt)
+            affix_names(tt2, auxiliary.prefix="foobarbaz")
+            tt3 <- merge(tt, tt2, funs)
+            for(col in measurement_names(tt))
+                expect_equal(tt3[[col]], tt[[col]] + tt2[[col]])
+        }
+    })
+}})
+
+
+## test_that("", {
 ## for(nm in names(test.tables)) {
 ##     with(test.tables[[nm]], {
 ##     })
-## }
+## }})
