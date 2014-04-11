@@ -12,6 +12,7 @@ Depends:
 Imports:
     data.table (>= 1.8)
 Suggests:
-    testthat (>= 0.8)
+    testthat (>= 0.8),
+    WDI
 License: BSD_3_clause + file LICENSE
 LazyData: true

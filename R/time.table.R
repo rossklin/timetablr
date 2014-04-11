@@ -388,6 +388,41 @@ same_str_as <- function( dt, tt
                  , frequency=attr(tt, "frequency") )
 }
 
+merge.time.table <- function( tt1, tt2, combine.funs=NULL, all=TRUE
+                            , ...
+                            , all.x=all, all.y=all ) {
+    stopifnot(setequal(index_names(tt1), index_names(tt2)))
+    stopifnot(time_name(tt1) == time_name(tt2))
+    shared.vars <- setdiff(intersect(colnames(tt1), colnames(tt2)), index_names(tt1, TRUE))
+    stopifnot(all(shared.vars %in% names(combine.funs)))
+    #
+    tt.new <- data.table:::merge.data.table(tt1, tt2, all=all, all.x=all.x, all.y=all.y, suffixes=c("", ".REMOVE"))
+    for(col in shared.vars) {
+        MERGE.TIME.TABLE.FUN.SAFE.NAME <- combine.funs[[col]]
+        MERGE.TIME.TABLE.COL1.SAFE.NAME <- col
+        MERGE.TIME.TABLE.COL2.SAFE.NAME <- paste0(col, ".REMOVE")
+        # tt.new[,eval(col):=fun(.SD[[col]], .SD[[col2]])]
+        tt.new[,eval(MERGE.TIME.TABLE.COL1.SAFE.NAME):=MERGE.TIME.TABLE.FUN.SAFE.NAME(.SD[[MERGE.TIME.TABLE.COL1.SAFE.NAME]], .SD[[MERGE.TIME.TABLE.COL2.SAFE.NAME]])]
+        # tt.new[,eval(col2):=NULL]
+        tt.new[,eval(MERGE.TIME.TABLE.COL2.SAFE.NAME):=NULL]
+    }
+    #
+    freq <- if(all | (all.x & all.y)) {
+        list(from=min(start(tt1), start(tt2)), to=max(end(tt1), end(tt2)), delta=NULL)
+    } else if (!(all | all.x | all.y)) {
+        list(from=max(start(tt1), start(tt2)), to=min(end(tt1), end(tt2)), delta=NULL)
+    } else if(all.x) {
+        attr(tt1, "frequency")
+    } else {
+        attr(tt2, "frequency")
+    }
+    #
+    as.time.table( tt.new, index_names(tt1), time_name(tt1)
+                 , union(measurement_names(tt1), measurement_names(tt2))
+                 , union(auxiliary_names(tt1), auxiliary_names(tt2))
+                 , frequency=freq )
+}
+
 #' Affix measurement/auxiliary names
 #'
 #' Adds prefix/suffix to the measurement/auxiliary (column) names of a
@@ -531,6 +566,54 @@ cv_split_time_table <- function( tt, counts = NULL, props = NULL
     result
 }
 
+#' World Bank data
+#'
+#' Construct a time.table from World Bank data.
+#'
+#' @param ... Arguments sent sent to \code{WDI} (primarily of interest are \code{country}, defaulting to "all", \code{start}, defaulting to 1961, \code{end}, defaulting to 2013, and \code{indicator}, defaulting to "NY.GDP.PCAP.PP.KD" (GDP per capita constant 2005 USD))
+#' @param auxiliary.indicator additional indicators to include as auxiliary values
+#' @param country.name column name to use for country code column (used as index), defaults to "iso2c" used by WDI
+#' @param translation.table list mapping indicator code names to column names to be used in final \code{time.table}
+#'
+#' @export
+#' @importFrom WDI WDI
+from_WDI <- function( ..., auxiliary.indicator=c()
+                    , country.name=NULL, translation.table=NULL ) {
+    require(WDI)
+    args <- list(...)
+    indicator <- args$indicator
+    #
+    args$country   <- maybe( args$country   , "all" )
+    args$start     <- maybe( args$start     , 1961  )
+    args$end       <- maybe( args$end       , 2013  )
+    args$indicator <- c( maybe(args$indicator, "NY.GDP.PCAP.PP.KD")
+                       , auxiliary.indicator )
+    #
+    dt <- data.table(do.call(WDI, args))
+    #
+    if(!is.null(country.name)) setnames(dt, "iso2c", country.name)
+    if(!is.null(translation.table)) {
+        from <- intersect(names(translation.table), indicator)
+        to   <- unlist(translation.table[from])
+        if(length(from) > 0) {
+            setnames(dt, from, to)
+            indicator[indicator == from] <- to
+        }
+        from <- intersect(names(translation.table), auxiliary.indicator)
+        to   <- unlist(translation.table[from])
+        if(length(from) > 0) {
+            setnames(dt, from, to)
+            auxiliary.indicator[auxiliary.indicator == from] <- to
+        }
+    }
+    #
+    additional <- if(maybe(args$extra, FALSE)) {
+        c("country", "iso3c", "region", "capital", "longitude", "latitude", "income", "lending")
+    } else { c() }
+    #
+    as.time.table( dt, maybe(country.name, "iso2c"), "year"
+                 , indicator, c(auxiliary.indicator, additional) )
+}
 
 ## atply <- function( tt, margin, fun, ...
 ##                  , include.measurement=TRUE, include.aux=FALSE
