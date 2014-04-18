@@ -217,6 +217,24 @@ start.time.table <- function(tt) attr(tt, "frequency")$from
 #' @param tt time.table to extract ending time from
 end.time.table <- function(tt) attr(tt, "frequency")$to
 
+#' number of observations
+#'
+#' @param tt time.table the number of observations of which to query
+#' @param units whether to ask for te number of (cross sectional) units rather than the number of unit/time pairs, defaults to the latter
+#' @param theoretical whether to compute the number of observations based on frequency information or on actual data stored in the time.table, defaults to the latter
+#'
+#' @export
+nobs <- function(tt, units=FALSE, theoretical=FALSE) {
+    if(units) nrow(unique(index(tt)))
+    else {
+        if(theoretical) {
+            nrow(unique(index(tt))) * floor((end(tt) - start(tt))/deltat(tt))
+        } else {
+            nrow(tt)
+        }
+    }
+}
+
 #' Subset a time table
 #'
 #' Subset a time table rows and columns by expression or indices, preserving
@@ -651,7 +669,9 @@ roles <- function(tt) {
 #' @export
 promote <- function(tt, changes, columns=NULL, destructive=TRUE) {
     columns <- maybe(columns, names(changes))
-    stopifnot(all(columns %in% colnames(tt)))
+    if(!all(columns %in% colnames(tt))) {
+        stop(paste("No such column: ", setdiff(columns, colnames(tt)), collapse="\n"))
+    }
     stopifnot(all(changes %in% c("index", "time", "measurement", "auxiliary")))
     rls <- roles(tt)
     rls[columns] <- changes

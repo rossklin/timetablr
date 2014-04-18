@@ -451,5 +451,10 @@ test_all("promote destructively alters structure (if and only if requested)", fu
     }
 }))
 
+test_all("nobs agrees with data from generator", function(dat) with(dat, {
+    expect_equal(nobs(tt, units=T), number$entities)
+    expect_equal(nobs(tt, units=F), number$entities * number$timepoints)
+}))
+
 ## test_all("", function(dat) with(dat, {
 ## }))
