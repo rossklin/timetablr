@@ -263,10 +263,12 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
     stopifnot(!is.null(index) | is.null(times))
     if(!is.null(index)) {
         ss <- if(!is.null(times))
-                  expand.data.frames(as.data.frame(index), as.data.frame(times))
+                  setkeyv( as.data.table(expand.data.frames(as.data.frame(index), as.data.frame(times)))
+                         , c(index_names(tt), time_name(tt)) )
+                               
               else
-                  as.data.frame(index)
-        tt2 <- tt2[ss]
+                  setkeyv(as.data.table(index), index_names(tt))
+        tt2 <- tt2[ss,allow.cartesian=TRUE]
     }
     #
     expr_call <- substitute(expr)
@@ -586,10 +588,18 @@ from_WDI <- function( ..., auxiliary.indicator=c()
     args$country   <- maybe( args$country   , "all" )
     args$start     <- maybe( args$start     , 1961  )
     args$end       <- maybe( args$end       , 2013  )
-    args$indicator <- c( maybe(args$indicator, "NY.GDP.PCAP.PP.KD")
+    args$indicator <- c( maybe( maybe(args$indicator, names(translation.table))
+                              , "NY.GDP.PCAP.PP.KD" )
                        , auxiliary.indicator )
     #
     dt <- data.table(do.call(WDI, args))
+    #
+    extra <- c( "country", "iso3c"
+              , "region", "capital"
+              , "longitude", "latitude"
+              , "income", "lending" )
+    additional <- intersect(colnames(dt, extra))
+        
     #
     if(!is.null(country.name)) setnames(dt, "iso2c", country.name)
     if(!is.null(translation.table)) {
@@ -607,12 +617,54 @@ from_WDI <- function( ..., auxiliary.indicator=c()
         }
     }
     #
-    additional <- if(maybe(args$extra, FALSE)) {
-        c("country", "iso3c", "region", "capital", "longitude", "latitude", "income", "lending")
-    } else { c() }
-    #
     as.time.table( dt, maybe(country.name, "iso2c"), "year"
                  , indicator, c(auxiliary.indicator, additional) )
+}
+
+#' Role of column
+#'
+#' Gives the roles columns play in a time.table, either "index", "time",
+#' "measurement", or "auxiliary"
+#'
+#' @param tt time.table to look for column in
+#'
+#' @export
+roles <- function(tt) {
+    rls <- list()
+    rls[index_names(tt)]       <- "index"
+    rls[time_name(tt)]         <- "time"
+    rls[measurement_names(tt)] <- "measurement"
+    rls[auxiliary_names(tt)]   <- "auxiliary"
+    rls
+}
+
+#' Canges role of column
+#'
+#' Changes the role of columns in a time.table, making sure relevant internal
+#' structure is canged.
+#'
+#' @param tt time.table to swich column roles in
+#' @param changes list or character vector of role changes, values each being one of "index", "time", "measurement", and "auxiliary"
+#' @param columns list of columns of same length as \code{changes}, defaults to names of elements in \code{changes}
+#' @param destructive whether to mutate the time.table, defaults to True
+#'
+#' @export
+promote <- function(tt, changes, columns=NULL, destructive=TRUE) {
+    columns <- maybe(columns, names(changes))
+    stopifnot(all(columns %in% colnames(tt)))
+    stopifnot(all(changes %in% c("index", "time", "measurement", "auxiliary")))
+    rls <- roles(tt)
+    rls[columns] <- changes
+    new.layout <- split(names(rls), as.character(rls))
+    if(is.null(new.layout$index)) stop("time.table without index not yet supported...")
+    if(is.null(new.layout$time)) stop("time.table without time not yet supported...")
+    result <- if(destructive) tt else copy(tt)
+    setattr(result,          "id.vars", new.layout$index)
+    setattr(result,         "time.var", new.layout$time)
+    setattr(result, "measurement.vars", new.layout$measurement)
+    setattr(result,         "aux.vars", new.layout$auxiliary)
+    setkeyv(result, new.layout$index)
+    result
 }
 
 ## atply <- function( tt, margin, fun, ...
