@@ -405,6 +405,27 @@ test_all("diff diffs values", function(dat) with(dat, {
     }
 }))
 
+test_all("embed", function(dat) with(dat, {
+    if(number$measurement > 0 & number$timepoints > 4) {
+        test.dim <- 2
+        embedding <- embed(tt, dimension=test.dim)
+        correct <- function(dt) {
+            for(col in measurement_names(tt)) {
+                for(i in seq_len(test.dim)) {
+                    if(!all.equal(head(dt[[col]], -i), tail(dt[[paste0("lag.", col, ".", i)]], -i)))
+                        return(FALSE)
+                }
+            }
+            TRUE
+        }
+        diagnostic <- embedding[, correct(.SD)
+                                , .SDcols=measurement_names(embedding)
+                                , by=c(index_names(tt), time_name(tt)) ]
+        expect_true(all(diagnostic$V1))
+    }
+}))
+
+
 test_all("Merging time.table produces time.table", function(dat) with(dat, {
     tt2 <- copy(tt)
     affix_names(tt2, prefix="SAFE.")
@@ -454,6 +475,14 @@ test_all("promote destructively alters structure (if and only if requested)", fu
 test_all("nobs agrees with data from generator", function(dat) with(dat, {
     expect_equal(nobs(tt, units=T), number$entities)
     expect_equal(nobs(tt, units=F), number$entities * number$timepoints)
+}))
+
+test_all("promote propertly updates keys", function(dat) with(dat, {
+    tt2 <- promote( tt
+                  , c(rep("index",number$time), rep("time",number$index))
+                  , c(time_name(tt), index_names(tt))
+                  , destructive=FALSE )
+    expect_equal(key(tt2), c(time_name(tt), index_names(tt)))
 }))
 
 ## test_all("", function(dat) with(dat, {

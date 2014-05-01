@@ -1,6 +1,7 @@
 S3method(auxiliary,time.table)
 S3method(deltat,time.table)
 S3method(diff,time.table)
+S3method(embed,time.table)
 S3method(frequency,time.table)
 S3method(index,time.table)
 S3method(lag,time.table)

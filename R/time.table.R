@@ -365,6 +365,60 @@ lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE, 
     same_str_as(tt2[keys], tt)
 }
 
+embed <- function(x, dimension=1, ...) UseMethod("embed")
+embed.default <- stats::embed
+
+#' Delay embedding of time.table
+#'
+#' Creates a time delay embedding (a la Takens' theorem) for the measuement
+#' values of a time.table, that is to say it adds columns for a number of
+#' lagged values for each measuement.
+#'
+#' @param x time.table to embedd
+#' @param dimension number of lagged values to add columns for
+#' @param prefixes prefixes to add to lagged column names, either vector of length \code{column} or a single string, defaults to "lag."
+#' @param suffixes suffixes to add to lagged column names, either vector of length \code{column} or a single string, defaults to \code{c(".1", ".2", ..., ".dimension")}.
+#' @param forward whether to lag values (the alternative being to lead them), defaults to true
+#' @param preserve.frequency whether the result should include only those index/time combinations present in \code{x}
+#'
+#' @export
+embed.time.table <- function( x, dimension=1
+                            , prefixes=NULL
+                            , suffixes=NULL
+                            , lag=TRUE, preserve.frequency=TRUE ) {
+    stopifnot(preserve.frequency)
+    #
+    prefixes <- if(is.null(prefixes)) {
+        rep("lag.", dimension)
+    } else if(length(prefixes) == 1) {
+        rep(prefixes, dimension) 
+    } else {
+        prefixes
+    }
+    #
+    suffixes <- if(is.null(suffixes)) {
+        pasteSane0(".", seq_len(dimension))
+    } else if(length(suffixes) == 1) {
+        rep(suffixes, dimension)
+    } else {
+        suffixes
+    }
+    if(length(prefixes) != dimension) stop("Insufficient prefix values")
+    if(length(suffixes) != dimension) stop("Insufficient suffix values")
+    #
+    lagged <- lapply( seq_len(dimension), lag.time.table
+                    , tt=drop_auxiliary(x)
+                    , forward=!lag
+                    , preserve.frequency=preserve.frequency )
+    for(i in seq_along(lagged)) {
+        affix_names( lagged[[i]]
+                   , measurement.prefix=prefixes[i]
+                   , measurement.suffix=suffixes[i] )
+    }
+    #
+    Reduce(function(...) merge(..., all.x=TRUE, all.y=FALSE), c(list(x), lagged))
+}
+
 #' Difference time.table
 #'
 #' Difference (diff) each time series in a time.table, taking missing missing
