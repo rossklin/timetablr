@@ -87,7 +87,6 @@ as.time.table <- function( df, id.vars, time.var
     setattr(tt,     "aux.vars", aux.vars)
     #
     setattr(tt, "frequency", frequency)
-    #
     setkeyv(tt, c(id.vars, time.var))
     #
     tt
@@ -132,8 +131,22 @@ subset.time.table.parts <- function( tt, with.index=FALSE, with.time=FALSE
                     , manual ))
     tt2 <- tt[,cols,with=FALSE]
     if(rekey) {
-        setkeyv(tt2, intersect(key(tt), colnames(tt2)))
+        setkeyv(tt2, c( if(with.index) index_names(tt) else c()
+                      , if(with.time)    time_name(tt) else c() ))
     }
+    tt2
+}
+
+#' drop auxiliary values
+#'
+#' @param tt time.table to drop auxiliary columns from
+#' @param destructive wether to mutate existing time table, defaults to false
+drop_auxiliary <- function(tt, destructive=FALSE) {
+    tt2 <- if(destructive) tt else copy(tt)
+    for(col in auxiliary_names(tt2)) {
+        tt2[[col]] <- NULL
+    }
+    setattr(tt2, "aux.vars", NULL)
     tt2
 }
 
@@ -339,7 +352,7 @@ lag.time.table <- function(tt, forward=TRUE, steps=1L, preserve.frequency=TRUE, 
     delta <- deltat(tt)
     if(is.null(delta)) stop("Cannot lag a time.table without frequency information")
     #
-    tt2 <- measurement(tt, with.index=T, with.time=T)
+    tt2 <- measurement.time.table(tt, with.index=T, with.time=T)
     tt2[[tcol]] <- tt2[[tcol]] - steps*delta
     # NOTE: We modified time column so we need to re-set the key
     # In case this ever turns out to be slow we can use monotonicity
@@ -683,35 +696,6 @@ promote <- function(tt, changes, columns=NULL, destructive=TRUE) {
     setattr(result,         "time.var", new.layout$time)
     setattr(result, "measurement.vars", new.layout$measurement)
     setattr(result,         "aux.vars", new.layout$auxiliary)
-    setkeyv(result, new.layout$index)
+    setkeyv(result, c(new.layout$index, new.layout$time))
     result
 }
-
-## atply <- function( tt, margin, fun, ...
-##                  , include.measurement=TRUE, include.aux=FALSE
-##                  , by.entity=TRUE ) {
-##     included <- c( if(include.measurement) measurement.names(tt) else c()
-##                  , if(include.aux) auxiliary.names(tt) else c() )
-##     if(margin == 2) {
-##         if(by.entity)
-##             tt[,lapply(.SD, fun, ...), .SDcols=included, by=eval(index.names(tt))]
-##         else 
-##             tt[,lapply(.SD, fun, ...), .SDcols=included, by=NULL]
-##     } else if(margin == 1) {
-##         tt[,fun(.SD), .SDcols=included]
-##     } else stop("time.table only has two dimensions")
-## }
-
-## tdply <- function( tt, fun, ...
-##                  , include.time=FALSE, include.measurement=TRUE, include.aux=FALSE
-##                  , pass.index=FALSE ) {
-##     included <- c( if(include.time) time.name(tt) else c()
-##                  , if(include.measurement) measurement.names(tt) else c()
-##                  , if(include.aux) auxiliary.names(tt) else c() )
-##     if(!pass.index)
-##         tt[,fun(.SD),.SDcols=eval(included), by=eval(index.names(tt))]
-##     else
-##         tt[,fun(.BY, .SD),.SDcols=eval(included), by=eval(index.names(tt))]
-## }
-
-## example.time.table <- as.time.table(data.table(expand.data.frames(thing=data.frame(a=1:3, b=7:5), data.frame(year=1:5)), stuff1=runif(15), stuff2=rnorm(15), other=seq(length.out=15, from=8)), id.vars=c("a", "b"), time.var="year", measurement.vars=c("stuff1", "stuff2"), aux.vars="other")
