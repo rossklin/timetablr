@@ -753,3 +753,56 @@ promote <- function(tt, changes, columns=NULL, destructive=TRUE) {
     setkeyv(result, c(new.layout$index, new.layout$time))
     result
 }
+
+#' Create an integer index
+#'
+#' Create a single column integer index to replace the current one.
+#'
+#' @param tt time.table to replace index of
+#' @param new.index.name name of new index column, defaults to "index"
+#'
+#' @export
+integer_index <- function(tt, new.index.name="index") {
+    tt2 <- copy(tt)
+    unique.indices <- unique(index(tt2))
+    unique.indices[,eval(new.index.name):=.I]
+    tt2[[new.index.name]] <-
+        unique.indices[index(tt2), new.index.name, with=FALSE][[new.index.name]]
+    #
+    as.time.table( tt2, new.index.name, time_name(tt2)
+                 , measurement_names(tt2)
+                 , c(index_names(tt2), auxiliary_names(tt2))
+                 , attr(tt2, "frequency") )
+}
+
+#' Create an integer time
+#'
+#' Create a (discrete) integer based time column
+#'
+#' @param tt time.table to replace time of
+#' @param new.time.name name of new time column, defaults to "time"
+#'
+#' @export
+integer_time <- function(tt, new.time.name="time") {
+    tt2 <- copy(tt)
+    unique.times <- unique(time(tt2, rekey=TRUE))
+    # TODO: This sould be done in a way that is consistent with frequency info
+    unique.times[,eval(new.time.name):=.I]
+    tt2[[new.time.name]] <- unique.times[time(tt2),new.time.name,with=FALSE][[new.time.name]]
+    #
+    # TODO: make the frequency thing more clever
+    as.time.table( tt2, index_names(tt2), new.time.name
+                 , measurement_names(tt2)
+                 , c(time_name(tt2), auxiliary_names(tt2)) )
+}
+
+#' Create pdata.frame from time.table
+#'
+#' @param tt time.table to convert
+#'
+#' @export 
+as_pdata_frame <- function(tt) {
+    require(plm)
+    if(length(index_names(tt)) > 1) stop("as_pdata_frame: pdata.frame only supports single column indices")
+    pdata.frame(tt, index_names(tt, with.time=TRUE))
+}
