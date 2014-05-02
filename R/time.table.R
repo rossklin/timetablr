@@ -416,7 +416,7 @@ embed.time.table <- function( x, dimension=1
                    , measurement.suffix=suffixes[i] )
     }
     #
-    Reduce(function(...) merge(..., all.x=TRUE, all.y=FALSE), c(list(x), lagged))
+    Reduce(function(...) merge.time.table(..., all.x=TRUE, all.y=FALSE), c(list(x), lagged))
 }
 
 #' Difference time.table
@@ -475,11 +475,19 @@ same_str_as <- function( dt, tt
                  , frequency=attr(tt, "frequency") )
 }
 
-merge.time.table <- function( tt1, tt2, combine.funs=NULL, all=TRUE
+merge.time.table <- function( tt1, tt2, combine.funs=NULL, all=NULL
                             , ...
-                            , all.x=all, all.y=all ) {
+                            , all.x=NULL, all.y=NULL ) {
     stopifnot(setequal(index_names(tt1), index_names(tt2)))
     stopifnot(time_name(tt1) == time_name(tt2))
+    #
+    if(is.null(all) & is.null(all.x) & is.null(all.y)) all <- TRUE
+    all.x <- maybe(all.x, all)
+    all.y <- maybe(all.y, all)
+    if(is.null(all.x) & !is.null(all.y) & all.y) all.x <- FALSE
+    if(is.null(all.y) & !is.null(all.x) & all.x) all.y <- FALSE
+    all <- maybe(all, all.x & all.y)
+    #
     shared.vars <- setdiff(intersect(colnames(tt1), colnames(tt2)), index_names(tt1, TRUE))
     stopifnot(all(shared.vars %in% names(combine.funs)))
     #
@@ -496,7 +504,7 @@ merge.time.table <- function( tt1, tt2, combine.funs=NULL, all=TRUE
     #
     freq <- if(all | (all.x & all.y)) {
         list(from=min(start(tt1), start(tt2)), to=max(end(tt1), end(tt2)), delta=NULL)
-    } else if (!(all | all.x | all.y)) {
+    } else if(!(all | all.x | all.y)) {
         list(from=max(start(tt1), start(tt2)), to=min(end(tt1), end(tt2)), delta=NULL)
     } else if(all.x) {
         attr(tt1, "frequency")
@@ -616,9 +624,9 @@ split_by_cols <- function(dt, cols) {
     setkeyv(unq, cols)
     f <- unq[split.by, factor.name, with=FALSE]
     #
-    dts <- split.data.frame(dt, f)
-    factor.vals <- lapply(dts, function(xs) xs[1,cols,with=F])
-    structure(dts, values=factor.vals)
+    dts <- lapply(split.data.frame(as.data.frame(dt), f), as.data.table)
+    factor.vals <- lapply(dts, function(xs) as.data.table(xs[1,cols]))
+    setattr(dts, "values", factor.vals)
 }
 
 #TODO: Make f optionally be a separate vector (in order to comply with
