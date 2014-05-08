@@ -288,8 +288,7 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
     }
     #
     tt2 <- tt[,c(index_names(tt), time_name(tt), keep.measurement, keep.aux), with=F]
-    extra.aux <- c( if(!is.null(index)) setdiff(colnames(index), colnames(tt2)) else c()
-                  , if(!is.null(times)) setdiff(colnames(times), colnames(tt2)) else c() )
+    orig.cols <- colnames(tt2)
     #
     stopifnot(!is.null(index) | is.null(times))
     if(!is.null(index)) {
@@ -302,10 +301,18 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
         tt2 <- tt2[ss,allow.cartesian=TRUE]
     }
     #
+    # Lots of fiddling to keep all the additional colmns around...
+    #
     expr_call <- substitute(expr)
-    if(!is.null(expr_call)) {
+    extra.aux <- if(!is.null(expr_call)) {
         rows <- eval(expr_call, as.list(tt2), parent.frame())
         tt2 <- tt2[rows]
+        c( if(!is.null(index)) setdiff(colnames(index), orig.cols) else c()
+         , if(!is.null(times)) setdiff(colnames(times), orig.cols) else c()
+         , setdiff(colnames(rows), orig.cols) )
+    } else {
+        c( if(!is.null(index)) setdiff(colnames(index), orig.cols) else c()
+         , if(!is.null(times)) setdiff(colnames(times), orig.cols) else c() )
     }
     #
     if(is.null(preserve.frequency)) {
@@ -625,7 +632,7 @@ split_by_cols <- function(dt, cols) {
     f <- unq[split.by, factor.name, with=FALSE]
     #
     dts <- lapply(split.data.frame(as.data.frame(dt), f), as.data.table)
-    factor.vals <- lapply(dts, function(xs) as.data.table(xs[1,cols]))
+    factor.vals <- lapply(dts, function(xs) unique(xs[1,cols,with=FALSE]))
     setattr(dts, "values", factor.vals)
 }
 
