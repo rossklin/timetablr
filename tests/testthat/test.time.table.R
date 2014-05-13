@@ -278,7 +278,9 @@ test_all("Subsetting times guesses new frequency", function(dat) with(dat, {
 }))
 
 test_all("subsetting indices with additonal columns preserved extra columns", function(dat) with(dat, {
-    ss.index <- as.data.table(data$index)[sample.int(nrow(data$index), 3, T)][,extra.column:=.I]
+    # Sort to retain key
+    extract.indices <- sort(sample.int(nrow(data$index), 3, T))
+    ss.index <- unique(index(tt))[extract.indices][,extra.column:=.I]
     tt2 <- subset(tt, index=ss.index)
     expect_true("extra.column" %in% auxiliary_names(tt2))
     extracted <- unique(setkeyv(tt2[,c(index_names(tt2), "extra.column"),with=F], c(index_names(tt2), "extra.column")))
