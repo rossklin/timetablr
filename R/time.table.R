@@ -287,17 +287,69 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
         keep.aux         <- keep.aux[keep.aux %in% vars]
     }
     #
+    index <- if(is.null(index)) {
+        index
+    } else if(inherits(index, "data.frame")) {
+        if(!any(colnames(index) %in% index_names(tt)))
+            stop("subset.time.table: 'index' does not contain any index columns from 'tt'")
+        as.data.frame(index)
+    } else if(inherits(index, "matrix")) {
+        if(!any(colnames(index) %in% index_names(tt)))
+            stop("subset.time.table: 'index' does not contain any index columns from 'tt'")
+        as.data.frame(index)
+    } else if(is.null(dim(index))) {
+        tmp <- as.data.frame(index)
+        if(length(index_names(tt)) > 1)
+            warning("subset.time.table: multi column index time.table subset by index vector, using only outermost index")
+        setnames(tmp, head(index_names(tt), 1))
+        tmp
+    } else stop(paste0("subset.time.table: Unable to handle 'index' argument of class ", pasteSane0(class(index), collapse=", ")))
+    #
+    times <- if(is.null(times)) {
+        times
+    } else if(inherits(times, "data.frame")) {
+        if(!any(colnames(times) %in% time_name(tt)))
+            stop("subset.time.table: 'times' does not conain time column from 'tt'")
+        as.data.frame(times)
+    } else if(inherits(times, "matrix")) {
+        if(!any(colnames(times) %in% time_name(tt)))
+            stop("subset.time.table: 'times' does not conain time column from 'tt'")
+        as.data.frame(times)
+    } else if(is.null(dim(times))) {
+        tmp <- as.data.frame(times)
+        setnames(tmp, time_name(tt))
+        tmp
+    } else stop(paste0("subset.time.table: Unable to handle 'times' argument of class ", pasteSane0(class(times), collapse=", ")))
+    #
+    # data.table subsetting required an initial segment of the key to be specified
+    missing.index.cols <- if(!is.null(times)) {
+        # Time is always the final key, whence all indices are required
+        index_names(tt)[which(!(index_names(tt) %in% colnames(index)))]
+    } else if(!is.null(index)) {
+        # Only add sufficiently many columns to make an initial segment
+        segment.end <- max(which(index_names(tt) %in% colnames(index)))
+        index_names(tt)[which(!(head(index_names(tt), segment.end) %in% index))]
+    } else {
+        c()
+    }
+    #
+    index <- if(length(missing.index.cols) == 0) {
+        index
+    } else {
+        lookup <- setkeyv(unique(index.time.table(tt)), maybe(intersect(index_names(tt), colnames(index)), character()))
+        lookup[index]
+    }
+    #
     tt2 <- tt[,c(index_names(tt), time_name(tt), keep.measurement, keep.aux), with=F]
     orig.cols <- colnames(tt2)
     #
-    stopifnot(!is.null(index) | is.null(times))
     if(!is.null(index)) {
-        ss <- if(!is.null(times))
-                  setkeyv( as.data.table(expand.data.frames(as.data.frame(index), as.data.frame(times)))
+        ss <- if(!is.null(times)) {
+                  setkeyv( as.data.table(expand.data.frames(index, times))
                          , c(index_names(tt), time_name(tt)) )
-                               
-              else
-                  setkeyv(as.data.table(index), index_names(tt))
+              } else {
+                  setkeyv(as.data.table(index), intersect(index_names(tt), colnames(index)))
+              }
         tt2 <- tt2[ss,allow.cartesian=TRUE]
     }
     #
