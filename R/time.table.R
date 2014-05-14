@@ -335,6 +335,8 @@ subset.time.table <- function( tt, expr=NULL, vars=NULL, index=NULL, times=NULL
     #
     index <- if(length(missing.index.cols) == 0) {
         index
+    } else if(is.null(index)) {
+        unique(index.time.table(tt))
     } else {
         lookup <- setkeyv(unique(index.time.table(tt)), maybe(intersect(index_names(tt), colnames(index)), character()))
         lookup[index]
